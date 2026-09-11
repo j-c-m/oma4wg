@@ -1,0 +1,5 @@
+*.log
+*.exe
+oma4wg.ini
+.DS_Store
+Thumbs.db
