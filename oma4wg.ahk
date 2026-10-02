@@ -34,6 +34,11 @@ Mask() {
     SendEvent "{Blind}{vkE8}"
 }
 
+; Mask, release Win and Shift, then the chord, in one SendEvent. Blind does not press Win again.
+SendChord(keys) {
+    SendEvent "{Blind}{vkE8}{LWin up}{RWin up}{Shift up}" keys
+}
+
 #Enter:: {
     Mask()
     NewTerminal()
@@ -43,8 +48,7 @@ Mask() {
     OpenCommandPalette()
 }
 #f:: {
-    Mask()
-    Send "{F11}"
+    SendChord("{F11}")
 }
 #q::
 #w:: {
@@ -62,32 +66,25 @@ $+Tab:: SuperTab(true)
 #HotIf
 #InputLevel 0
 #c:: {
-    Mask()
-    Send "{Ctrl down}{Insert}{Ctrl up}"
+    SendChord("{Ctrl down}{Insert}{Ctrl up}")
 }
 ; Level 1 so Super+Ctrl+V can Send "#v" without retriggering paste.
 #InputLevel 1
 #v:: {
-    Mask()
-    Send "{Shift down}{Insert}{Shift up}"
+    SendChord("{Shift down}{Insert}{Shift up}")
 }
 #InputLevel 0
 ^#v:: {
-    Mask()
-    Send "{Blind}{Ctrl up}"
-    Send "#v"
+    SendEvent "{Blind}{vkE8}{Ctrl up}#v"
 }
 #z:: {
-    Mask()
-    Send "^z"
+    SendChord("^z")
 }
 #+z:: {
-    Mask()
-    Send "^y"
+    SendChord("^y")
 }
 #a:: {
-    Mask()
-    Send "^a"
+    SendChord("^a")
 }
 
 ; Super+Shift apps (do not bind #x — native Win+X menu)
@@ -228,7 +225,7 @@ EndAppSwitcher() {
         return
     AppSwitcher := false
     SetTimer WatchAppSwitcher, 0
-    SendEvent "{Blind}{Alt up}"
+    Send "{Blind}{Alt up}"
 }
 
 GoToDesktopAt := 0
@@ -366,5 +363,6 @@ Log(msg) {
 }
 
 ExitLog(reason, code) {
+    try EndAppSwitcher()
     Log("exit reason=" reason " code=" code)
 }
