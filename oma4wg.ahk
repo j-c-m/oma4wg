@@ -10,13 +10,20 @@ OnExit ExitLog
 
 AppSwitcher := false
 SwapAltWin := IniRead(A_ScriptDir "\oma4wg.ini", "oma4wg", "SwapAltWin", "0") != "0"
-A_IconTip := SwapAltWin ? "oma4wg Alt=Win" : "oma4wg (no Alt/Win swap)"
+SwapPaused := false
+SwapPausedExe := ""
+NoSwapExe := Map()
+LoadNoSwap()
+UpdateTip()
 A_TrayMenu.Insert("1&", "Swap Alt and Win", ToggleSwap)
 if SwapAltWin
     A_TrayMenu.Check("Swap Alt and Win")
 TrayTip "oma4wg", "Loaded " FormatTime(, "HH:mm:ss")
+WatchNoSwap()
+SetTimer WatchNoSwap, 250
 
-#HotIf SwapAltWin
+; Swap is off while a NoSwapExe process exists. Super binds stay on physical Win.
+#HotIf SwapAltWin && !SwapPaused
 $LAlt::LWin
 $LWin::LAlt
 $RAlt::RWin
@@ -303,12 +310,55 @@ MoveWindowToDesktopSilent(n) {
     DllCall(VdaMove, "Ptr", hwnd, "Int", n - 1, "Int")
 }
 
+LoadNoSwap() {
+    global NoSwapExe
+    raw := IniRead(A_ScriptDir "\oma4wg.ini", "oma4wg", "NoSwapExe", "")
+    NoSwapExe := Map()
+    for part in StrSplit(raw, ",") {
+        name := StrLower(Trim(part))
+        if name = ""
+            continue
+        if !InStr(name, ".")
+            name .= ".exe"
+        NoSwapExe[name] := true
+    }
+    Log("noswap " (raw = "" ? "(none)" : raw))
+}
+
+WatchNoSwap() {
+    global SwapPaused, SwapPausedExe, NoSwapExe
+    hit := ""
+    for name, unused in NoSwapExe {
+        if ProcessExist(name) {
+            hit := name
+            break
+        }
+    }
+    on := hit != ""
+    if (on = SwapPaused && (!on || hit = SwapPausedExe))
+        return
+    SwapPaused := on
+    SwapPausedExe := hit
+    UpdateTip()
+    Log("swap " (on ? "off " hit : "on"))
+}
+
+UpdateTip() {
+    global SwapAltWin, SwapPaused, SwapPausedExe
+    if SwapAltWin && SwapPaused
+        A_IconTip := "oma4wg swap off (" SwapPausedExe ")"
+    else if SwapAltWin
+        A_IconTip := "oma4wg Alt=Win"
+    else
+        A_IconTip := "oma4wg (no Alt/Win swap)"
+}
+
 ToggleSwap(*) {
     global SwapAltWin
     SwapAltWin := !SwapAltWin
     IniWrite SwapAltWin ? "1" : "0", A_ScriptDir "\oma4wg.ini", "oma4wg", "SwapAltWin"
     A_TrayMenu.ToggleCheck("Swap Alt and Win")
-    A_IconTip := SwapAltWin ? "oma4wg Alt=Win" : "oma4wg (no Alt/Win swap)"
+    UpdateTip()
 }
 
 Log(msg) {
